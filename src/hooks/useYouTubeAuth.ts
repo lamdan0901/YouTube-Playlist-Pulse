@@ -6,12 +6,10 @@ const SCOPES = [
   "https://www.googleapis.com/auth/youtube",
 ];
 
-// Storage keys
 const TOKEN_STORAGE_KEY = "youtube_access_token";
 const TOKEN_EXPIRY_STORAGE_KEY = "youtube_token_expiry";
 const REFRESH_TOKEN_STORAGE_KEY = "youtube_refresh_token";
 
-// Token storage utilities
 const storeTokens = (
   accessToken: string,
   expiresIn: number,
@@ -52,7 +50,6 @@ const clearStoredTokens = () => {
   localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
 };
 
-// Exchange authorization code for tokens via backend
 const exchangeCodeForTokens = async (
   code: string
 ): Promise<{
@@ -78,7 +75,6 @@ const exchangeCodeForTokens = async (
   }
 };
 
-// Refresh access token using refresh token via backend
 const refreshAccessToken = async (
   refreshToken: string
 ): Promise<{
@@ -107,7 +103,6 @@ const refreshAccessToken = async (
   }
 };
 
-// Validate token by making a simple API call
 const validateToken = async (token: string): Promise<boolean> => {
   try {
     const response = await fetch(
@@ -136,7 +131,6 @@ export const useYouTubeAuth = () => {
     const initializeAuth = async () => {
       setIsValidating(true);
 
-      // Check for OAuth authorization code redirect
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
       const error = urlParams.get("error");
@@ -148,8 +142,8 @@ export const useYouTubeAuth = () => {
       }
 
       if (code) {
-        // Exchange authorization code for tokens
         const tokens = await exchangeCodeForTokens(code);
+        console.log("tokens: ", tokens);
 
         if (tokens) {
           storeTokens(
@@ -204,10 +198,18 @@ export const useYouTubeAuth = () => {
             refreshToken
           );
           setAccessToken(newTokenData.access_token);
+          setIsAuthenticated(true);
         } else {
           // Refresh token is invalid, clear all stored tokens
           clearStoredTokens();
         }
+      } else if (storedAccessToken) {
+        // We have an access token but no refresh token (legacy user)
+        console.warn(
+          "Access token found but no refresh token. User may need to re-authenticate for long-term access."
+        );
+        setAccessToken(storedAccessToken);
+        setIsAuthenticated(true);
       }
 
       setIsValidating(false);
@@ -216,9 +218,11 @@ export const useYouTubeAuth = () => {
     initializeAuth();
   }, []);
 
-  const authenticate = async (selectAccount: boolean = true) => {
+  const authenticate = async (forceConsent: boolean = true) => {
     const redirectUri = window.location.origin;
-    const promptParam = selectAccount ? "select_account" : "consent";
+    // Always use 'consent' by default to ensure refresh tokens are returned
+    // Use 'select_account' only when explicitly requested and user wants account selection
+    const promptParam = forceConsent ? "consent" : "select_account";
 
     // Use authorization code flow instead of implicit flow
     const authUrl =
@@ -228,7 +232,8 @@ export const useYouTubeAuth = () => {
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&scope=${encodeURIComponent(SCOPES.join(" "))}` +
       `&access_type=offline` + // Request offline access for refresh tokens
-      `&prompt=${promptParam}`;
+      `&prompt=${promptParam}` +
+      `&include_granted_scopes=true`; // Ensure all granted scopes are included
 
     window.location.href = authUrl;
   };
@@ -237,6 +242,19 @@ export const useYouTubeAuth = () => {
     clearStoredTokens();
     setAccessToken(null);
     setIsAuthenticated(false);
+  };
+
+  const forceReAuthenticate = () => {
+    // Force consent to ensure we get refresh tokens
+    clearStoredTokens();
+    setAccessToken(null);
+    setIsAuthenticated(false);
+    authenticate(true); // Force consent
+  };
+
+  const hasRefreshToken = (): boolean => {
+    const { refreshToken } = getStoredTokens();
+    return !!refreshToken;
   };
 
   // Check token expiry and attempt refresh
@@ -277,6 +295,8 @@ export const useYouTubeAuth = () => {
     accessToken,
     authenticate,
     logout,
+    forceReAuthenticate,
+    hasRefreshToken,
     isValidating,
   };
 };

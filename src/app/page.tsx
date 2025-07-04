@@ -8,8 +8,14 @@ export default function Home() {
   const [message, setMessage] = useState<string | null>(null);
   const [playlistId, setPlaylistId] = useState("");
 
-  const { isAuthenticated, accessToken, authenticate, logout, isValidating } =
-    useYouTubeAuth();
+  const {
+    isAuthenticated,
+    accessToken,
+    authenticate,
+    logout,
+    isValidating,
+    forceReAuthenticate,
+  } = useYouTubeAuth();
   const {
     isLoading,
     progress,
@@ -42,7 +48,7 @@ export default function Home() {
   if (isValidating) {
     return (
       <div className="max-w-2xl mx-auto p-6 space-y-6">
-        <h1 className="text-3xl font-bold">YouTube Playlist Generator</h1>
+        <h1 className="text-3xl font-bold">YouTube Playlist Pulse</h1>
         <div className="text-center">
           <p className="text-gray-200">Checking authentication...</p>
         </div>
@@ -52,7 +58,7 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold">YouTube Playlist Generator</h1>
+      <h1 className="text-3xl font-bold">YouTube Playlist Pulse</h1>
 
       <div>{error}</div>
 
@@ -105,6 +111,10 @@ export default function Home() {
             </div>
           )}
         </div>
+      )}
+
+      {isAuthenticated && (
+        <button onClick={forceReAuthenticate}>Switch Google Account</button>
       )}
     </div>
   );
