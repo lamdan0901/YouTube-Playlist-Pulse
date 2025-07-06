@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useYouTubeAuth, useYouTubeApi } from "@/hooks";
 
 export default function Home() {
@@ -24,6 +24,22 @@ export default function Home() {
     generatePlaylist,
     cancel,
   } = useYouTubeApi(accessToken);
+
+  // Update document title with progress during playlist creation
+  useEffect(() => {
+    const baseTitle = "YouTube Playlist Pulse";
+
+    if (isLoading && progress > 0) {
+      document.title = `${progress}% - ${baseTitle}`;
+    } else {
+      document.title = baseTitle;
+    }
+
+    // Cleanup function to reset title when component unmounts
+    return () => {
+      document.title = baseTitle;
+    };
+  }, [isLoading, progress]);
 
   const handleCreatePlaylist = async () => {
     try {
@@ -66,6 +82,7 @@ export default function Home() {
 
       {playlistId && (
         <a
+          className="block"
           target="_blank"
           href={`https://www.youtube.com/playlist?list=${playlistId}`}
         >
