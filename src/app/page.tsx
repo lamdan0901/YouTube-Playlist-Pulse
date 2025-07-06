@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useYouTubeAuth, useYouTubeApi } from "@/hooks";
+import { CheckIcon, CopyIcon } from "@/app/icons";
 
 export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [playlistId, setPlaylistId] = useState("");
+  const [copiedVideos, setCopiedVideos] = useState<Set<number>>(new Set());
 
   const {
     isAuthenticated,
@@ -24,6 +26,11 @@ export default function Home() {
     generatePlaylist,
     cancel,
   } = useYouTubeApi(accessToken);
+
+  const handleCopy = (title: string, index: number) => {
+    navigator.clipboard.writeText(title);
+    setCopiedVideos((prev) => new Set(prev).add(index));
+  };
 
   // Update document title with progress during playlist creation
   useEffect(() => {
@@ -93,9 +100,22 @@ export default function Home() {
       {failedVideos.length > 0 && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
           <strong className="font-semibold">Failed Videos:</strong>
-          <ul className="list-disc pl-5">
-            {failedVideos.map((videoId: string, index: number) => (
-              <li key={index}>{videoId}</li>
+          <ul className="list-none mt-2 space-y-1">
+            {failedVideos.map((title: string, index: number) => (
+              <li key={index} className="flex items-center gap-x-2">
+                <button
+                  onClick={() => handleCopy(title, index)}
+                  className="flex-shrink-0"
+                  title="Copy title"
+                >
+                  {copiedVideos.has(index) ? (
+                    <CheckIcon className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <CopyIcon className="w-5 h-5 text-gray-600" />
+                  )}
+                </button>
+                <span>{title}</span>
+              </li>
             ))}
           </ul>
         </div>
