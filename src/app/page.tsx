@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useYouTubeAuth, useYouTubeApi } from "@/hooks";
 import { CheckIcon, CopyIcon } from "@/app/icons";
+import { Button, ProgressBar } from "@/components/ui";
 
 export default function Home() {
   const [error, setError] = useState<string | null>(null);
@@ -71,9 +72,13 @@ export default function Home() {
   if (isValidating) {
     return (
       <div className="max-w-2xl mx-auto p-6 space-y-6">
-        <h1 className="text-3xl font-bold">YouTube Playlist Pulse</h1>
+        <h1 className="text-3xl font-bold text-[--color-foreground]">
+          YouTube Playlist Pulse
+        </h1>
         <div className="text-center">
-          <p className="text-gray-200">Checking authentication...</p>
+          <p className="text-[--color-foreground] opacity-75">
+            Checking authentication...
+          </p>
         </div>
       </div>
     );
@@ -81,77 +86,161 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold">YouTube Playlist Pulse</h1>
+      <h1 className="text-3xl font-bold text-[--color-foreground] mb-8">
+        YouTube Playlist Pulse
+      </h1>
 
-      <div>{error}</div>
-
-      <div>{message}</div>
-
-      {playlistId && (
-        <a
-          className="block"
-          target="_blank"
-          href={`https://www.youtube.com/playlist?list=${playlistId}`}
-        >
-          <button>Open playlist</button>
-        </a>
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          </div>
+        </div>
       )}
 
+      {/* Success Message */}
+      {message && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-green-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Playlist Link */}
+      {playlistId && (
+        <div className="bg-[--color-youtube-surface] border border-[--color-youtube-secondary] rounded-lg p-4">
+          <p className="text-[--color-foreground] mb-3 font-medium">
+            Your playlist is ready!
+          </p>
+          <Button
+            variant="primary"
+            onClick={() =>
+              window.open(
+                `https://www.youtube.com/playlist?list=${playlistId}`,
+                "_blank"
+              )
+            }
+          >
+            Open Playlist on YouTube
+          </Button>
+        </div>
+      )}
+
+      {/* Failed Videos */}
       {failedVideos.length > 0 && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           <strong className="font-semibold">Failed Videos:</strong>
           <ul className="list-none mt-2 space-y-1">
             {failedVideos.map((title: string, index: number) => (
               <li key={index} className="flex items-center gap-x-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleCopy(title, index)}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 p-1"
                   title="Copy title"
                 >
                   {copiedVideos.has(index) ? (
-                    <CheckIcon className="w-5 h-5 text-green-600" />
+                    <CheckIcon className="w-4 h-4 text-green-600" />
                   ) : (
-                    <CopyIcon className="w-5 h-5 text-gray-600" />
+                    <CopyIcon className="w-4 h-4 text-gray-600" />
                   )}
-                </button>
-                <span>{title}</span>
+                </Button>
+                <span className="text-sm">{title}</span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
+      {/* Authentication Section */}
       {!isAuthenticated ? (
-        <button onClick={() => authenticate(true)}>Sign in with YouTube</button>
+        <div className="text-center space-y-4">
+          <p className="text-[--color-foreground] opacity-75">
+            Connect your YouTube account to create playlists from your
+            subscriptions
+          </p>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => authenticate(true)}
+          >
+            Sign in with YouTube
+          </Button>
+        </div>
       ) : (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <button onClick={handleCreatePlaylist} disabled={isLoading}>
+        <div className="space-y-6">
+          {/* Main Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleCreatePlaylist}
+              disabled={isLoading}
+              loading={isLoading}
+              className="w-full sm:w-auto"
+            >
               {isLoading ? "Creating Playlist..." : "Create New Playlist"}
-            </button>
-            <button onClick={logout}>Logout</button>
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={forceReAuthenticate}>
+                Switch Account
+              </Button>
+              <Button variant="secondary" onClick={logout}>
+                Logout
+              </Button>
+            </div>
           </div>
 
+          {/* Progress Section */}
           {isLoading && (
-            <div className="space-y-2">
-              <p className="text-sm text-center text-gray-100">
-                {progressStatus} ({progress}%)
-              </p>
+            <div className="space-y-4 bg-[--color-youtube-surface] p-4 rounded-lg border border-[--color-youtube-secondary]">
+              <ProgressBar
+                value={progress}
+                status={progressStatus}
+                variant="default"
+                size="md"
+              />
               <div className="flex justify-center">
-                <button
-                  onClick={cancel}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                >
+                <Button variant="danger" onClick={cancel}>
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           )}
         </div>
-      )}
-
-      {isAuthenticated && (
-        <button onClick={forceReAuthenticate}>Switch Google Account</button>
       )}
     </div>
   );

@@ -3,6 +3,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* YouTube-inspired Design System */
+  --color-youtube-red: #FF0000;
+  --color-youtube-red-hover: #CC0000;
+  --color-youtube-red-dark: #8B0000;
+  --color-youtube-dark: #0F0F0F;
+  --color-youtube-dark-lighter: #1A1A1A;
+  --color-youtube-gray: #404040;
+  --color-youtube-gray-light: #606060;
+  --color-success: #00B04F;
+  --color-warning: #FF9500;
+  --color-error: #FF0000;
 }
 
 @theme inline {
@@ -10,6 +22,15 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* YouTube Theme Colors */
+  --color-youtube-primary: var(--color-youtube-red);
+  --color-youtube-primary-hover: var(--color-youtube-red-hover);
+  --color-youtube-primary-dark: var(--color-youtube-red-dark);
+  --color-youtube-secondary: var(--color-youtube-gray);
+  --color-youtube-secondary-hover: var(--color-youtube-gray-light);
+  --color-youtube-background: var(--color-youtube-dark);
+  --color-youtube-surface: var(--color-youtube-dark-lighter);
 }
 
 @media (prefers-color-scheme: dark) {
