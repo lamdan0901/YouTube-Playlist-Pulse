@@ -25,8 +25,36 @@ export default function Home() {
     progressStatus,
     failedVideos,
     generatePlaylist,
+    generatePlaylistFromLinks,
     cancel,
   } = useYouTubeApi(accessToken);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [videoLinks, setVideoLinks] = useState("");
+
+  const handleCreatePlaylistFromLinks = async () => {
+    try {
+      setError(null);
+      setMessage(null);
+      const links = videoLinks.split("\n").filter((link) => link.trim() !== "");
+      if (links.length === 0) {
+        setError("Please enter at least one YouTube video link.");
+        return;
+      }
+      const result = await generatePlaylistFromLinks(links);
+      setMessage(
+        `Playlist created successfully! Added ${
+          result.videoCount - failedVideos.length
+        } videos. `
+      );
+      setPlaylistId(result.playlistId);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create playlist";
+      if (errorMessage !== "Operation cancelled") {
+        setError(errorMessage);
+      }
+    }
+  };
 
   const handleCopy = (title: string, index: number) => {
     navigator.clipboard.writeText(title);
@@ -212,7 +240,15 @@ export default function Home() {
               loading={isLoading}
               className="w-full sm:w-auto"
             >
-              {isLoading ? "Creating Playlist..." : "Create New Playlist"}
+              {isLoading ? "Creating Playlist..." : "Create from Subscriptions"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => setShowLinkInput(!showLinkInput)}
+              className="w-full sm:w-auto"
+            >
+              {showLinkInput ? "Hide Link Input" : "Create from Links"}
             </Button>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={forceReAuthenticate}>
@@ -223,6 +259,33 @@ export default function Home() {
               </Button>
             </div>
           </div>
+
+          {/* Create from links section */}
+          {showLinkInput && (
+            <div className="space-y-4 bg-[--color-youtube-surface] p-4 rounded-lg border border-[--color-youtube-secondary]">
+              <h2 className="text-xl font-semibold">Create Playlist from Links</h2>
+              <p className="text-sm text-[--color-foreground] opacity-75">
+                Paste YouTube video links below, one per line.
+              </p>
+              <textarea
+                className="w-full p-2 bg-[--color-background] border border-[--color-youtube-secondary] rounded-md"
+                rows={5}
+                value={videoLinks}
+                onChange={(e) => setVideoLinks(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=...\nhttps://youtu.be/..."
+              />
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={handleCreatePlaylistFromLinks}
+                disabled={isLoading}
+                loading={isLoading}
+                className="w-full sm:w-auto"
+              >
+                {isLoading ? "Creating Playlist..." : "Create Playlist"}
+              </Button>
+            </div>
+          )}
 
           {/* Progress Section */}
           {isLoading && (
