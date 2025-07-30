@@ -5,6 +5,7 @@ A modern Next.js web application that automatically generates YouTube playlists 
 ## 🚀 Features
 
 - **Automatic Playlist Generation**: Creates playlists from recent videos across all your subscribed channels
+- **Create from Links**: Create a new playlist from a list of YouTube video links
 - **Smart Filtering**: Only includes videos between 1-20 minutes in duration
 - **OAuth Authentication**: Secure Google/YouTube authentication with automatic token refresh
 - **Progress Tracking**: Real-time progress updates during playlist creation
@@ -126,9 +127,13 @@ npm run lint
    - Processes each channel's recent uploads (max 5 videos per channel)
    - Filters videos by duration (1-20 minutes)
    - Creates and populates your playlist
-4. **View Results**: Click "Open playlist" to access your new private playlist on YouTube
-5. **Error Review**: Check any videos that failed to be added to the playlist
-6. **Cancel Operation**: Use the cancel button to stop playlist creation if needed
+4. **Create from Links**: 
+   - Click "Create from Links" to show the text area.
+   - Paste your YouTube video links (one per line).
+   - Click "Create Playlist" to generate a new playlist with the provided links.
+5. **View Results**: Click "Open playlist" to access your new private playlist on YouTube
+6. **Error Review**: Check any videos that failed to be added to the playlist
+7. **Cancel Operation**: Use the cancel button to stop playlist creation if needed
 
 ## 🏗️ Architecture
 

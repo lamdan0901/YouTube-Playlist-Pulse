@@ -109,7 +109,6 @@ export const useYouTubeApi = (accessToken: string | null) => {
     const batchSize = 50;
 
     for (let i = 0; i < videoIds.length; i += batchSize) {
-      // Check if cancelled
       if (abortControllerRef.current?.signal.aborted) {
         throw new Error("Operation cancelled");
       }
@@ -345,14 +344,11 @@ export const useYouTubeApi = (accessToken: string | null) => {
           }
           // Add delay between channels
           await new Promise((resolve) => setTimeout(resolve, 250));
-        } catch (error) {
-          if (
-            error instanceof Error &&
-            error.message === "Operation cancelled"
-          ) {
-            throw error;
+        } catch (err) {
+          if (err instanceof Error && err.message === "Operation cancelled") {
+            throw err;
           }
-          console.error(`Error processing channel ${channels[i]}:`, error);
+          console.error(`Error processing channel ${channels[i]}:`, err);
           continue;
         }
       }
@@ -395,12 +391,81 @@ export const useYouTubeApi = (accessToken: string | null) => {
     }
   };
 
+  const generatePlaylistFromLinks = async (videoLinks: string[]) => {
+    if (!accessToken) {
+      throw new Error("Authentication required");
+    }
+
+    // Create new AbortController for this operation
+    abortControllerRef.current = new AbortController();
+    setIsLoading(true);
+    setProgress(0);
+    setFailedVideos([]);
+
+    try {
+      // 1. Extract and filter unique video IDs from links
+      updateProgress("Extracting video IDs", 0, 100);
+      const uniqueVideoIds = Array.from(
+        new Set(
+          videoLinks
+            .map((link) => {
+              const url = new URL(link);
+              if (url.hostname === "youtu.be") {
+                return url.pathname.slice(1);
+              } else if (
+                url.hostname === "www.youtube.com" ||
+                url.hostname === "youtube.com"
+              ) {
+                return url.searchParams.get("v");
+              }
+              return null;
+            })
+            .filter((id): id is string => !!id)
+        )
+      );
+
+      if (!uniqueVideoIds.length) {
+        throw new Error("No valid video links found");
+      }
+
+      // 2. Fetch video details (to get titles for failed videos)
+      updateProgress("Fetching video details", 25, 100);
+      const videos = await filterVideosByDuration(uniqueVideoIds);
+
+      // 3. Create playlist
+      updateProgress("Creating playlist", 75, 100);
+      const playlistId = await createPlaylist(
+        `Custom Playlist ${new Date().toLocaleString()}`
+      );
+
+      // 4. Add videos to playlist
+      updateProgress("Adding videos", 90, 100);
+      await addVideosToPlaylist(playlistId, videos);
+
+      updateProgress("Complete", 100, 100);
+      return {
+        playlistId,
+        videoCount: videos.length,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message === "Operation cancelled") {
+        console.log("Playlist generation cancelled by user");
+        setProgressStatus("Cancelled");
+      }
+      throw error;
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
   return {
     isLoading,
     progress,
     progressStatus,
     failedVideos,
     generatePlaylist,
+    generatePlaylistFromLinks,
     cancel,
   };
 };
