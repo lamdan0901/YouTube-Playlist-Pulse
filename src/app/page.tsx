@@ -8,8 +8,12 @@ import { Button, ProgressBar } from "@/components/ui";
 export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [playlistId, setPlaylistId] = useState("");
+  const [playlists, setPlaylists] = useState<
+    { id: string; url: string; count: number }[]
+  >([]);
   const [copiedVideos, setCopiedVideos] = useState<Set<number>>(new Set());
+  const [videoLimit, setVideoLimit] = useState<number | string>(50);
+  const [playlistSize, setPlaylistSize] = useState<number | string>(50);
 
   const {
     isAuthenticated,
@@ -40,13 +44,14 @@ export default function Home() {
         setError("Please enter at least one YouTube video link.");
         return;
       }
-      const result = await generatePlaylistFromLinks(links);
+      const pSize = Number(playlistSize) > 0 ? Number(playlistSize) : 50;
+      const result = await generatePlaylistFromLinks(links, pSize);
       setMessage(
-        `Playlist created successfully! Added ${
-          result.videoCount - failedVideos.length
-        } videos. `
+        `Playlist(s) created successfully! Added ${
+          result.totalVideos - failedVideos.length
+        } videos across ${result.playlists.length} playlist(s).`
       );
-      setPlaylistId(result.playlistId);
+      setPlaylists(result.playlists);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to create playlist";
@@ -81,13 +86,15 @@ export default function Home() {
     try {
       setError(null);
       setMessage(null);
-      const result = await generatePlaylist();
+      const limit = Number(videoLimit) > 0 ? Number(videoLimit) : 50;
+      const pSize = Number(playlistSize) > 0 ? Number(playlistSize) : 50;
+      const result = await generatePlaylist(limit, pSize);
       setMessage(
-        `Playlist created successfully! Added ${
-          result.videoCount - failedVideos.length
-        } videos. `
+        `Playlist(s) created successfully! Added ${
+          result.totalVideos - failedVideos.length
+        } videos across ${result.playlists.length} playlist(s).`
       );
-      setPlaylistId(result.playlistId);
+      setPlaylists(result.playlists);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to create playlist";
@@ -166,23 +173,32 @@ export default function Home() {
         </div>
       )}
 
-      {/* Playlist Link */}
-      {playlistId && (
-        <div className="bg-[--color-youtube-surface] border border-[--color-youtube-secondary] rounded-lg p-4">
-          <p className="text-[--color-foreground] mb-3 font-medium">
-            Your playlist is ready!
+      {/* Playlist Links */}
+      {playlists.length > 0 && (
+        <div className="bg-[--color-youtube-surface] border border-[--color-youtube-secondary] rounded-lg p-4 space-y-3">
+          <p className="text-[--color-foreground] font-medium">
+            Your playlist{playlists.length > 1 ? "s are" : " is"} ready!
           </p>
-          <Button
-            variant="primary"
-            onClick={() =>
-              window.open(
-                `https://www.youtube.com/playlist?list=${playlistId}`,
-                "_blank"
-              )
-            }
-          >
-            Open Playlist on YouTube
-          </Button>
+          <div className="grid gap-3">
+            {playlists.map((playlist, index) => (
+              <div
+                key={playlist.id}
+                className="flex items-center justify-between bg-[--color-background] p-3 rounded border border-[--color-youtube-secondary]"
+              >
+                <span className="text-[--color-foreground] font-medium">
+                  {playlists.length > 1 ? `Part ${index + 1}` : "Playlist"} (
+                  {playlist.count} videos)
+                </span>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => window.open(playlist.url, "_blank")}
+                >
+                  Open on YouTube
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -230,6 +246,61 @@ export default function Home() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Settings */}
+          <div className="flex flex-wrap items-center gap-3 bg-[--color-youtube-surface] p-4 rounded-lg border border-[--color-youtube-secondary]">
+            <div className="flex items-center gap-3">
+              <label
+                htmlFor="videoLimit"
+                className="text-[--color-foreground] font-medium whitespace-nowrap"
+              >
+                Max videos to fetch:
+              </label>
+              <input
+                id="videoLimit"
+                type="number"
+                min="1"
+                max="200"
+                value={videoLimit}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setVideoLimit("");
+                  } else {
+                    const num = parseInt(val);
+                    if (!isNaN(num) && num > 0) setVideoLimit(num);
+                  }
+                }}
+                className="w-24 p-2 bg-[--color-background] border border-[--color-youtube-secondary] rounded-md text-[--color-foreground]"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label
+                htmlFor="playlistSize"
+                className="text-[--color-foreground] font-medium whitespace-nowrap"
+              >
+                Max videos per playlist:
+              </label>
+              <input
+                id="playlistSize"
+                type="number"
+                min="1"
+                max="200"
+                value={playlistSize}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setPlaylistSize("");
+                  } else {
+                    const num = parseInt(val);
+                    if (!isNaN(num) && num > 0) setPlaylistSize(num);
+                  }
+                }}
+                className="w-24 p-2 bg-[--color-background] border border-[--color-youtube-secondary] rounded-md text-[--color-foreground]"
+              />
+            </div>
+          </div>
+
           {/* Main Actions */}
           <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
             <Button
@@ -263,7 +334,9 @@ export default function Home() {
           {/* Create from links section */}
           {showLinkInput && (
             <div className="space-y-4 bg-[--color-youtube-surface] p-4 rounded-lg border border-[--color-youtube-secondary]">
-              <h2 className="text-xl font-semibold">Create Playlist from Links</h2>
+              <h2 className="text-xl font-semibold">
+                Create Playlist from Links
+              </h2>
               <p className="text-sm text-[--color-foreground] opacity-75">
                 Paste YouTube video links below, one per line.
               </p>

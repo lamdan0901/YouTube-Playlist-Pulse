@@ -46,7 +46,10 @@ export const useYouTubeApi = (accessToken: string | null) => {
     setProgressStatus(status);
   };
 
-  const parseISO8601Duration = (duration: string): number => {
+  const parseISO8601Duration = (
+    duration: string | undefined | null
+  ): number => {
+    if (!duration) return 0;
     const matches = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
     if (!matches) return 0;
 
@@ -120,7 +123,10 @@ export const useYouTubeApi = (accessToken: string | null) => {
       );
 
       for (const item of data.items) {
-        const duration = parseISO8601Duration(item.contentDetails.duration);
+        const contentDetails = item.contentDetails;
+        if (!contentDetails) continue;
+
+        const duration = parseISO8601Duration(contentDetails.duration);
 
         // Filter videos between 1 minute and 20 minutes
         if (duration > 60 && duration <= 1200) {
@@ -305,7 +311,10 @@ export const useYouTubeApi = (accessToken: string | null) => {
     }
   };
 
-  const generatePlaylist = async () => {
+  const generatePlaylist = async (
+    maxVideos: number = 50,
+    playlistSize: number = 50
+  ) => {
     if (!accessToken) {
       throw new Error("Authentication required");
     }
@@ -364,20 +373,50 @@ export const useYouTubeApi = (accessToken: string | null) => {
             new Date(b.publishedAt).getTime() -
             new Date(a.publishedAt).getTime()
         )
-        .slice(0, 50);
+        .slice(0, maxVideos);
 
-      // Create playlist
-      updateProgress("Creating playlist", 80, 100);
-      const playlistId = await createPlaylist(new Date().toLocaleString());
+      // Create playlists
+      updateProgress("Creating playlists", 80, 100);
+      const CHUNK_SIZE = playlistSize;
+      const chunks = [];
+      for (let i = 0; i < sortedVideos.length; i += CHUNK_SIZE) {
+        chunks.push(sortedVideos.slice(i, i + CHUNK_SIZE));
+      }
 
-      // Add videos to playlist with proper error handling
-      updateProgress("Adding videos", 90, 100);
-      await addVideosToPlaylist(playlistId, sortedVideos);
+      const createdPlaylists = [];
+      const timestamp = new Date().toLocaleString();
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const partSuffix =
+          chunks.length > 1 ? ` (Part ${i + 1}/${chunks.length})` : "";
+        const playlistTitle = `${timestamp}${partSuffix}`;
+
+        updateProgress(
+          `Creating playlist ${i + 1}/${chunks.length}`,
+          80 + (i / chunks.length) * 10,
+          100
+        );
+        const playlistId = await createPlaylist(playlistTitle);
+
+        updateProgress(
+          `Adding videos to playlist ${i + 1}/${chunks.length}`,
+          80 + ((i + 0.5) / chunks.length) * 10,
+          100
+        );
+        await addVideosToPlaylist(playlistId, chunk);
+
+        createdPlaylists.push({
+          id: playlistId,
+          count: chunk.length,
+          url: `https://www.youtube.com/playlist?list=${playlistId}`,
+        });
+      }
 
       updateProgress("Complete", 100, 100);
       return {
-        playlistId,
-        videoCount: sortedVideos.length,
+        playlists: createdPlaylists,
+        totalVideos: sortedVideos.length,
       };
     } catch (error) {
       if (error instanceof Error && error.message === "Operation cancelled") {
@@ -391,7 +430,10 @@ export const useYouTubeApi = (accessToken: string | null) => {
     }
   };
 
-  const generatePlaylistFromLinks = async (videoLinks: string[]) => {
+  const generatePlaylistFromLinks = async (
+    videoLinks: string[],
+    playlistSize: number = 50
+  ) => {
     if (!accessToken) {
       throw new Error("Authentication required");
     }
@@ -433,19 +475,48 @@ export const useYouTubeApi = (accessToken: string | null) => {
       const videos = await filterVideosByDuration(uniqueVideoIds);
 
       // 3. Create playlist
-      updateProgress("Creating playlist", 75, 100);
-      const playlistId = await createPlaylist(
-        `Custom Playlist ${new Date().toLocaleString()}`
-      );
+      updateProgress("Creating playlists", 75, 100);
 
-      // 4. Add videos to playlist
-      updateProgress("Adding videos", 90, 100);
-      await addVideosToPlaylist(playlistId, videos);
+      const CHUNK_SIZE = playlistSize;
+      const chunks = [];
+      for (let i = 0; i < videos.length; i += CHUNK_SIZE) {
+        chunks.push(videos.slice(i, i + CHUNK_SIZE));
+      }
+
+      const createdPlaylists = [];
+      const timestamp = `Custom Playlist ${new Date().toLocaleString()}`;
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const partSuffix =
+          chunks.length > 1 ? ` (Part ${i + 1}/${chunks.length})` : "";
+        const playlistTitle = `${timestamp}${partSuffix}`;
+
+        updateProgress(
+          `Creating playlist ${i + 1}/${chunks.length}`,
+          75 + (i / chunks.length) * 15,
+          100
+        );
+        const playlistId = await createPlaylist(playlistTitle);
+
+        updateProgress(
+          `Adding videos to playlist ${i + 1}/${chunks.length}`,
+          75 + ((i + 0.5) / chunks.length) * 15,
+          100
+        );
+        await addVideosToPlaylist(playlistId, chunk);
+
+        createdPlaylists.push({
+          id: playlistId,
+          count: chunk.length,
+          url: `https://www.youtube.com/playlist?list=${playlistId}`,
+        });
+      }
 
       updateProgress("Complete", 100, 100);
       return {
-        playlistId,
-        videoCount: videos.length,
+        playlists: createdPlaylists,
+        totalVideos: videos.length,
       };
     } catch (error) {
       if (error instanceof Error && error.message === "Operation cancelled") {
