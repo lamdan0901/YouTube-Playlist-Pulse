@@ -530,6 +530,36 @@ export const useYouTubeApi = (accessToken: string | null) => {
     }
   };
 
+  const deletePlaylist = async (playlistId: string) => {
+    if (!accessToken) {
+      throw new Error("Authentication required");
+    }
+
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlists?id=${playlistId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      let errorMessage = "Failed to delete playlist";
+      try {
+        const data = await response.json();
+        if (data?.error?.message) {
+          errorMessage = data.error.message;
+        }
+      } catch {
+        // Ignore JSON parsing errors for empty or non-JSON responses.
+      }
+      throw new Error(errorMessage);
+    }
+  };
+
   return {
     isLoading,
     progress,
@@ -537,6 +567,7 @@ export const useYouTubeApi = (accessToken: string | null) => {
     failedVideos,
     generatePlaylist,
     generatePlaylistFromLinks,
+    deletePlaylist,
     cancel,
   };
 };

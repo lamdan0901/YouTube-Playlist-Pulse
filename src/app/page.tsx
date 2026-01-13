@@ -11,6 +11,9 @@ export default function Home() {
   const [playlists, setPlaylists] = useState<
     { id: string; url: string; count: number }[]
   >([]);
+  const [deletingPlaylistIds, setDeletingPlaylistIds] = useState<Set<string>>(
+    new Set()
+  );
   const [copiedVideos, setCopiedVideos] = useState<Set<number>>(new Set());
   const [videoLimit, setVideoLimit] = useState<number | string>(50);
   const [playlistSize, setPlaylistSize] = useState<number | string>(50);
@@ -30,6 +33,7 @@ export default function Home() {
     failedVideos,
     generatePlaylist,
     generatePlaylistFromLinks,
+    deletePlaylist,
     cancel,
   } = useYouTubeApi(accessToken);
   const [showLinkInput, setShowLinkInput] = useState(false);
@@ -64,6 +68,29 @@ export default function Home() {
   const handleCopy = (title: string, index: number) => {
     navigator.clipboard.writeText(title);
     setCopiedVideos((prev) => new Set(prev).add(index));
+  };
+
+  const handleDeletePlaylist = async (playlistId: string) => {
+    try {
+      setError(null);
+      setMessage(null);
+      setDeletingPlaylistIds((prev) => new Set(prev).add(playlistId));
+      await deletePlaylist(playlistId);
+      setPlaylists((prev) => prev.filter((playlist) => playlist.id !== playlistId));
+      setMessage("Playlist deleted successfully.");
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete playlist";
+      if (errorMessage !== "Operation cancelled") {
+        setError(errorMessage);
+      }
+    } finally {
+      setDeletingPlaylistIds((prev) => {
+        const next = new Set(prev);
+        next.delete(playlistId);
+        return next;
+      });
+    }
   };
 
   // Update document title with progress during playlist creation
@@ -189,13 +216,24 @@ export default function Home() {
                   {playlists.length > 1 ? `Part ${index + 1}` : "Playlist"} (
                   {playlist.count} videos)
                 </span>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => window.open(playlist.url, "_blank")}
-                >
-                  Open on YouTube
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => window.open(playlist.url, "_blank")}
+                    disabled={deletingPlaylistIds.has(playlist.id)}
+                  >
+                    Open on YouTube
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleDeletePlaylist(playlist.id)}
+                    loading={deletingPlaylistIds.has(playlist.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
