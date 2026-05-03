@@ -560,6 +560,50 @@ export const useYouTubeApi = (accessToken: string | null) => {
     }
   };
 
+  const GENERATED_DESCRIPTION = "Generated playlist from subscriptions.";
+
+  const fetchGeneratedPlaylists = async (): Promise<
+    { id: string; title: string; videoCount: number }[]
+  > => {
+    if (!accessToken) {
+      throw new Error("Authentication required");
+    }
+
+    const headers = new Headers({
+      Authorization: "Bearer " + accessToken,
+      Accept: "application/json",
+    });
+
+    let allPlaylists: { id: string; title: string; videoCount: number }[] = [];
+    let nextPageToken = "";
+
+    do {
+      const data = await fetchWithAuth(
+        `https://www.googleapis.com/youtube/v3/playlists?` +
+          `part=snippet,contentDetails&mine=true&maxResults=50` +
+          (nextPageToken ? `&pageToken=${nextPageToken}` : ""),
+        { headers }
+      );
+
+      if (data.items) {
+        const filtered = data.items
+          .filter(
+            (item: any) => item.snippet.description === GENERATED_DESCRIPTION
+          )
+          .map((item: any) => ({
+            id: item.id,
+            title: item.snippet.title,
+            videoCount: item.contentDetails.itemCount ?? 0,
+          }));
+        allPlaylists = [...allPlaylists, ...filtered];
+      }
+
+      nextPageToken = data.nextPageToken || "";
+    } while (nextPageToken);
+
+    return allPlaylists;
+  };
+
   return {
     isLoading,
     progress,
@@ -568,6 +612,7 @@ export const useYouTubeApi = (accessToken: string | null) => {
     generatePlaylist,
     generatePlaylistFromLinks,
     deletePlaylist,
+    fetchGeneratedPlaylists,
     cancel,
   };
 };

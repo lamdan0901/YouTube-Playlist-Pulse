@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useYouTubeAuth, useYouTubeApi } from "@/hooks";
 import { CheckIcon, CopyIcon } from "@/app/icons";
 import { Button, ProgressBar } from "@/components/ui";
+import { GeneratedPlaylists } from "@/components/GeneratedPlaylists";
 
 export default function Home() {
   const [error, setError] = useState<string | null>(null);
@@ -397,6 +398,9 @@ export default function Home() {
               </Button>
             </div>
           )}
+
+          {/* Generated Playlists */}
+          <GeneratedPlaylists accessToken={accessToken} />
 
           {/* Progress Section */}
           {isLoading && (
