@@ -27,24 +27,24 @@ export function ProgressBar({
   };
 
   const variants = {
-    default: "bg-[--color-youtube-primary]",
-    success: "bg-[--color-success]",
-    error: "bg-[--color-error]",
-    warning: "bg-[--color-warning]",
+    default: "bg-primary",
+    success: "bg-success",
+    error: "bg-danger",
+    warning: "bg-amber-600",
   };
 
   return (
     <div className={cn("w-full space-y-2", className)}>
       {/* Status and percentage display */}
       {(status || showPercentage) && (
-        <div className="flex justify-between items-center text-sm">
+        <div className="flex items-center justify-between gap-4 text-sm">
           {status && (
-            <span className="text-[--color-foreground] font-medium">
+            <span className="min-w-0 font-medium wrap-anywhere">
               {status}
             </span>
           )}
           {showPercentage && (
-            <span className="text-[--color-foreground] opacity-75">
+            <span className="ml-auto shrink-0 text-muted tabular-nums">
               {clampedValue}%
             </span>
           )}
@@ -53,20 +53,22 @@ export function ProgressBar({
 
       {/* Progress bar container */}
       <div
+        role="progressbar"
+        aria-label="Playlist creation progress"
+        aria-valuenow={clampedValue}
         className={cn(
-          "w-full bg-[--color-youtube-surface] rounded-full overflow-hidden",
+          "w-full overflow-hidden rounded-full bg-quiet",
           sizes[size]
         )}
       >
         {/* Progress bar fill */}
         <div
           className={cn(
-            "h-full rounded-full transition-all duration-500 ease-out",
+            "h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-out",
             variants[variant]
           )}
           style={{
             width: `${clampedValue}%`,
-            transformOrigin: "left",
           }}
         />
       </div>

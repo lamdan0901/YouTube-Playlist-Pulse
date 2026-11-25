@@ -132,294 +132,243 @@ export default function Home() {
     }
   };
 
-  if (isValidating) {
-    return (
-      <div className="max-w-2xl mx-auto p-6 space-y-6">
-        <h1 className="text-3xl font-bold text-[--color-foreground]">
-          YouTube Playlist Pulse
-        </h1>
-        <div className="text-center">
-          <p className="text-[--color-foreground] opacity-75">
-            Checking authentication...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-[--color-foreground] mb-8">
-        YouTube Playlist Pulse
-      </h1>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-red-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium">{error}</p>
-            </div>
+    <>
+      <header className="border-b border-line bg-surface">
+        <div className="page-shell flex min-h-[62px] items-center justify-between gap-3 sm:min-h-[68px]">
+          <div className="flex items-center gap-2.5 font-bold">
+            <span className="play-mark" aria-hidden="true" />
+            <span>YouTube Playlist Pulse</span>
           </div>
-        </div>
-      )}
-
-      {/* Success Message */}
-      {message && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-green-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
+          {isAuthenticated && !isValidating && (
+            <details className="relative shrink-0">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2.5 rounded-lg px-3 text-sm font-semibold hover:bg-quiet">
+                Account
+                <span
+                  aria-hidden="true"
+                  className="size-[7px] -translate-y-0.5 rotate-45 border-r border-b"
                 />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium">{message}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Playlist Links */}
-      {playlists.length > 0 && (
-        <div className="bg-[--color-youtube-surface] border border-[--color-youtube-secondary] rounded-lg p-4 space-y-3">
-          <p className="text-[--color-foreground] font-medium">
-            Your playlist{playlists.length > 1 ? "s are" : " is"} ready!
-          </p>
-          <div className="grid gap-3">
-            {playlists.map((playlist, index) => (
-              <div
-                key={playlist.id}
-                className="flex items-center justify-between bg-[--color-background] p-3 rounded border border-[--color-youtube-secondary]"
-              >
-                <span className="text-[--color-foreground] font-medium">
-                  {playlists.length > 1 ? `Part ${index + 1}` : "Playlist"} (
-                  {playlist.count} videos)
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => window.open(playlist.url, "_blank")}
-                    disabled={deletingPlaylistIds.has(playlist.id)}
-                  >
-                    Open on YouTube
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDeletePlaylist(playlist.id)}
-                    loading={deletingPlaylistIds.has(playlist.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
+              </summary>
+              <div className="absolute top-full right-0 z-10 mt-2 grid min-w-40 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+                <Button variant="ghost" size="sm" className="justify-start" onClick={forceReAuthenticate}>
+                  Switch account
+                </Button>
+                <Button variant="ghost" size="sm" className="justify-start" onClick={logout}>
+                  Sign out
+                </Button>
               </div>
-            ))}
-          </div>
+            </details>
+          )}
         </div>
-      )}
+      </header>
 
-      {/* Failed Videos */}
-      {failedVideos.length > 0 && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          <strong className="font-semibold">Failed Videos:</strong>
-          <ul className="list-none mt-2 space-y-1">
-            {failedVideos.map((title: string, index: number) => (
-              <li key={index} className="flex items-center gap-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopy(title, index)}
-                  className="flex-shrink-0 p-1"
-                  title="Copy title"
-                >
-                  {copiedVideos.has(index) ? (
-                    <CheckIcon className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <CopyIcon className="w-4 h-4 text-gray-600" />
+      <main className="page-shell space-y-[18px] py-7 sm:space-y-6 sm:pt-[42px] sm:pb-12">
+        <div className="space-y-2.5">
+          <h1 className="text-[clamp(1.875rem,5.5vw,2.5rem)] leading-[1.12] font-bold tracking-[-0.04em]">
+            {isAuthenticated || isValidating ? "Create a playlist" : "Connect to YouTube"}
+          </h1>
+          <p className="text-muted">
+            Build a YouTube playlist from recent subscription uploads or video links.
+          </p>
+        </div>
+
+        {isValidating ? (
+          <p className="panel p-4 text-sm text-muted sm:p-6" role="status">
+            Checking authentication…
+          </p>
+        ) : (
+          <>
+            {isAuthenticated ? (
+              <section className="panel" aria-label="Playlist settings">
+                <fieldset className="source-options grid min-w-0 grid-cols-2 gap-3 border-b border-line px-4 sm:flex sm:gap-6 sm:px-6">
+                  <legend className="sr-only">Playlist source</legend>
+                  <input
+                    className="sr-only"
+                    id="subscriptions"
+                    name="source"
+                    type="radio"
+                    checked={!showLinkInput}
+                    onChange={() => setShowLinkInput(false)}
+                  />
+                  <label className="source-option" htmlFor="subscriptions">Subscriptions</label>
+                  <input
+                    className="sr-only"
+                    id="videoLinksSource"
+                    name="source"
+                    type="radio"
+                    checked={showLinkInput}
+                    onChange={() => setShowLinkInput(true)}
+                  />
+                  <label className="source-option" htmlFor="videoLinksSource">Video links</label>
+                </fieldset>
+
+                <div className="grid gap-5 p-4 sm:p-6">
+                  {showLinkInput && (
+                    <div className="grid gap-1.5 text-sm">
+                      <label className="font-semibold" htmlFor="videoLinks">YouTube video links</label>
+                      <textarea
+                        id="videoLinks"
+                        className="form-control resize-y"
+                        rows={4}
+                        value={videoLinks}
+                        onChange={(e) => setVideoLinks(e.target.value)}
+                        placeholder="https://www.youtube.com/watch?v=…"
+                        aria-describedby="videoLinksHint"
+                      />
+                      <p id="videoLinksHint" className="text-muted">Paste one video link per line.</p>
+                    </div>
                   )}
-                </Button>
-                <span className="text-sm">{title}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
-      {/* Authentication Section */}
-      {!isAuthenticated ? (
-        <div className="text-center space-y-4">
-          <p className="text-[--color-foreground] opacity-75">
-            Connect your YouTube account to create playlists from your
-            subscriptions
-          </p>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() => authenticate(true)}
-          >
-            Sign in with YouTube
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Settings */}
-          <div className="flex flex-wrap items-center gap-3 bg-[--color-youtube-surface] p-4 rounded-lg border border-[--color-youtube-secondary]">
-            <div className="flex items-center gap-3">
-              <label
-                htmlFor="videoLimit"
-                className="text-[--color-foreground] font-medium whitespace-nowrap"
-              >
-                Max videos to fetch:
-              </label>
-              <input
-                id="videoLimit"
-                type="number"
-                min="1"
-                max="200"
-                value={videoLimit}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "") {
-                    setVideoLimit("");
-                  } else {
-                    const num = parseInt(val);
-                    if (!isNaN(num) && num > 0) setVideoLimit(num);
-                  }
-                }}
-                className="w-24 p-2 bg-[--color-background] border border-[--color-youtube-secondary] rounded-md text-[--color-foreground]"
-              />
-            </div>
+                  <div className="grid max-w-[460px] grid-cols-2 gap-4 text-sm font-semibold">
+                    {!showLinkInput && (
+                      <label className="grid gap-1.5">
+                        Videos to fetch
+                        <input
+                          id="videoLimit"
+                          className="form-control"
+                          type="number"
+                          min="1"
+                          max="200"
+                          value={videoLimit}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "") {
+                              setVideoLimit("");
+                            } else {
+                              const num = parseInt(val);
+                              if (!isNaN(num) && num > 0) setVideoLimit(num);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
 
-            <div className="flex items-center gap-3">
-              <label
-                htmlFor="playlistSize"
-                className="text-[--color-foreground] font-medium whitespace-nowrap"
-              >
-                Max videos per playlist:
-              </label>
-              <input
-                id="playlistSize"
-                type="number"
-                min="1"
-                max="200"
-                value={playlistSize}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "") {
-                    setPlaylistSize("");
-                  } else {
-                    const num = parseInt(val);
-                    if (!isNaN(num) && num > 0) setPlaylistSize(num);
-                  }
-                }}
-                className="w-24 p-2 bg-[--color-background] border border-[--color-youtube-secondary] rounded-md text-[--color-foreground]"
-              />
-            </div>
-          </div>
+                    <label className="grid gap-1.5">
+                      Videos per playlist
+                      <input
+                        id="playlistSize"
+                        className="form-control"
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={playlistSize}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "") {
+                            setPlaylistSize("");
+                          } else {
+                            const num = parseInt(val);
+                            if (!isNaN(num) && num > 0) setPlaylistSize(num);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
 
-          {/* Main Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleCreatePlaylist}
-              disabled={isLoading}
-              loading={isLoading}
-              className="w-full sm:w-auto"
-            >
-              {isLoading ? "Creating Playlist..." : "Create from Subscriptions"}
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => setShowLinkInput(!showLinkInput)}
-              className="w-full sm:w-auto"
-            >
-              {showLinkInput ? "Hide Link Input" : "Create from Links"}
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={forceReAuthenticate}>
-                Switch Account
-              </Button>
-              <Button variant="secondary" onClick={logout}>
-                Logout
-              </Button>
-            </div>
-          </div>
-
-          {/* Create from links section */}
-          {showLinkInput && (
-            <div className="space-y-4 bg-[--color-youtube-surface] p-4 rounded-lg border border-[--color-youtube-secondary]">
-              <h2 className="text-xl font-semibold">
-                Create Playlist from Links
-              </h2>
-              <p className="text-sm text-[--color-foreground] opacity-75">
-                Paste YouTube video links below, one per line.
-              </p>
-              <textarea
-                className="w-full p-2 bg-[--color-background] border border-[--color-youtube-secondary] rounded-md"
-                rows={5}
-                value={videoLinks}
-                onChange={(e) => setVideoLinks(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=...\nhttps://youtu.be/..."
-              />
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={handleCreatePlaylistFromLinks}
-                disabled={isLoading}
-                loading={isLoading}
-                className="w-full sm:w-auto"
-              >
-                {isLoading ? "Creating Playlist..." : "Create Playlist"}
-              </Button>
-            </div>
-          )}
-
-          {/* Generated Playlists */}
-          <GeneratedPlaylists accessToken={accessToken} />
-
-          {/* Progress Section */}
-          {isLoading && (
-            <div className="space-y-4 bg-[--color-youtube-surface] p-4 rounded-lg border border-[--color-youtube-secondary]">
-              <ProgressBar
-                value={progress}
-                status={progressStatus}
-                variant="default"
-                size="md"
-              />
-              <div className="flex justify-center">
-                <Button variant="danger" onClick={cancel}>
-                  Cancel
+                  <div className="flex flex-col gap-2 text-center sm:flex-row sm:items-center sm:gap-3.5">
+                    <Button
+                      onClick={showLinkInput ? handleCreatePlaylistFromLinks : handleCreatePlaylist}
+                      loading={isLoading}
+                    >
+                      {isLoading ? "Creating playlist…" : "Create playlist"}
+                    </Button>
+                    <p className="text-sm text-muted">New playlists are private.</p>
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <div className="panel p-4 sm:p-6">
+                <Button className="w-full sm:w-auto" onClick={async () => await authenticate(true)}>
+                  Sign in with YouTube
                 </Button>
               </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+            )}
+
+            {error && (
+              <p role="alert" className="rounded-xl bg-danger-tint px-4 py-3 text-sm text-danger wrap-anywhere">
+                {error}
+              </p>
+            )}
+            {message && (
+              <p role="status" className="rounded-xl bg-success-tint px-4 py-3 text-sm text-success">
+                {message}
+              </p>
+            )}
+
+            {isAuthenticated && isLoading && (
+              <div className="panel space-y-4 p-4 sm:p-6">
+                <ProgressBar value={progress} status={progressStatus} />
+                <Button variant="danger" onClick={cancel}>Cancel</Button>
+              </div>
+            )}
+
+            {playlists.length > 0 && (
+              <section className="panel" aria-labelledby="ready-playlists">
+                <h2 id="ready-playlists" className="px-4 pt-4 pb-3 text-lg font-bold sm:px-6">
+                  Your playlist{playlists.length > 1 ? "s are" : " is"} ready
+                </h2>
+                <ul className="divide-y divide-line border-t border-line" role="list">
+                  {playlists.map((playlist, index) => (
+                    <li key={playlist.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-6">
+                      <span className="font-semibold">
+                        {playlists.length > 1 ? `Part ${index + 1}` : "Playlist"}{" "}
+                        <span className="text-sm font-normal text-muted">({playlist.count} videos)</span>
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => window.open(playlist.url, "_blank", "noopener,noreferrer")}
+                          disabled={deletingPlaylistIds.has(playlist.id)}
+                        >
+                          Open on YouTube
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={async () => await handleDeletePlaylist(playlist.id)}
+                          loading={deletingPlaylistIds.has(playlist.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {failedVideos.length > 0 && (
+              <section className="panel space-y-2 p-4 sm:p-6" aria-labelledby="failed-videos">
+                <h2 id="failed-videos" className="text-lg font-bold text-danger">Failed videos</h2>
+                <ul className="divide-y divide-line" role="list">
+                  {failedVideos.map((title, index) => (
+                    <li key={index} className="flex items-center gap-2 py-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopy(title, index)}
+                        className="size-11 shrink-0 p-0"
+                        aria-label={`Copy title: ${title}`}
+                        title="Copy title"
+                      >
+                        {copiedVideos.has(index) ? (
+                          <CheckIcon className="size-4 text-success" />
+                        ) : (
+                          <CopyIcon className="size-4 text-muted" />
+                        )}
+                      </Button>
+                      <span className="min-w-0 text-sm wrap-anywhere">{title}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {isAuthenticated && <GeneratedPlaylists accessToken={accessToken} />}
+          </>
+        )}
+      </main>
+    </>
   );
 }

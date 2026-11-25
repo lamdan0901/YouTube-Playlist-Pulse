@@ -17,7 +17,6 @@ interface GeneratedPlaylistsProps {
 
 export function GeneratedPlaylists({ accessToken }: GeneratedPlaylistsProps) {
   const [playlists, setPlaylists] = useState<GeneratedPlaylist[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +38,6 @@ export function GeneratedPlaylists({ accessToken }: GeneratedPlaylistsProps) {
         const data = await apiRef.current.fetchGeneratedPlaylists();
         if (!cancelled) {
           setPlaylists(data);
-          setSelectedIds(new Set());
         }
       } catch (err) {
         if (!cancelled) {
@@ -63,47 +61,15 @@ export function GeneratedPlaylists({ accessToken }: GeneratedPlaylistsProps) {
 
   const refresh = () => setRefreshKey((k) => k + 1);
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const allSelected =
-    playlists.length > 0 && selectedIds.size === playlists.length;
-
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(playlists.map((p) => p.id)));
-    }
-  };
-
-  const handleDeleteSelected = async () => {
-    const idsToDelete =
-      selectedIds.size > 0
-        ? Array.from(selectedIds)
-        : playlists.map((p) => p.id);
-
-    const confirmMessage =
-      selectedIds.size > 0
-        ? `Delete ${idsToDelete.length} selected playlist(s)?`
-        : `Delete ALL ${idsToDelete.length} generated playlist(s)?`;
-
+  const handleDeleteAll = async () => {
+    const confirmMessage = `Delete ALL ${playlists.length} generated playlist(s)?`;
     if (!window.confirm(confirmMessage)) return;
 
     setIsDeleting(true);
     setError(null);
 
     try {
-      for (const id of idsToDelete) {
+      for (const { id } of playlists) {
         await apiRef.current.deletePlaylist(id);
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
@@ -136,11 +102,9 @@ export function GeneratedPlaylists({ accessToken }: GeneratedPlaylistsProps) {
 
   if (isLoading) {
     return (
-      <div className="bg-[--color-youtube-surface] border border-[--color-youtube-secondary] rounded-lg p-4">
-        <p className="text-[--color-foreground] opacity-75 text-center">
-          Loading generated playlists...
-        </p>
-      </div>
+      <p className="panel p-4 text-sm text-muted sm:p-6" role="status">
+        Loading generated playlists…
+      </p>
     );
   }
 
@@ -149,14 +113,14 @@ export function GeneratedPlaylists({ accessToken }: GeneratedPlaylistsProps) {
   }
 
   return (
-    <div className="bg-[--color-youtube-surface] border border-[--color-youtube-secondary] rounded-lg p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[--color-foreground]">
-          Generated Playlists ({playlists.length})
+    <section className="panel" aria-labelledby="generated-playlists">
+      <div className="flex flex-col items-start gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <h2 id="generated-playlists" className="text-lg leading-tight font-bold tracking-tight">
+          Generated playlists <span className="font-medium text-muted">({playlists.length})</span>
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={refresh}
             disabled={isDeleting}
@@ -166,67 +130,54 @@ export function GeneratedPlaylists({ accessToken }: GeneratedPlaylistsProps) {
           <Button
             variant="danger"
             size="sm"
-            onClick={handleDeleteSelected}
+            onClick={handleDeleteAll}
             loading={isDeleting}
           >
-            {selectedIds.size > 0
-              ? `Delete Selected (${selectedIds.size})`
-              : "Delete All"}
+            Delete all
           </Button>
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+        <p role="alert" className="bg-danger-tint px-4 py-3 text-sm text-danger wrap-anywhere sm:px-6">
           {error}
-        </div>
+        </p>
       )}
 
-      <div className="flex items-center gap-2 px-1">
-        <input
-          type="checkbox"
-          checked={allSelected}
-          onChange={toggleSelectAll}
-          className="accent-[--color-youtube-primary]"
-        />
-        <span className="text-sm text-[--color-foreground] opacity-75">
-          Select All
-        </span>
-      </div>
-
-      <div className="max-h-80 overflow-y-auto space-y-2">
+      <ul className="max-h-80 divide-y divide-line overflow-y-auto" role="list">
         {playlists.map((playlist) => (
-          <div
+          <li
             key={playlist.id}
-            className="flex items-center gap-3 bg-[--color-background] p-3 rounded border border-[--color-youtube-secondary]"
+            className="flex items-center gap-3 px-4 py-3 sm:px-6"
           >
-            <input
-              type="checkbox"
-              checked={selectedIds.has(playlist.id)}
-              onChange={() => toggleSelect(playlist.id)}
-              className="accent-[--color-youtube-primary] flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-[--color-foreground] font-medium truncate">
-                {playlist.title}
-              </p>
-              <p className="text-sm text-[--color-foreground] opacity-60">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <a
+                href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-sm text-[15px] font-semibold wrap-anywhere underline underline-offset-3 hover:text-danger"
+              >
+                {playlist.title}{" "}
+                <span aria-hidden="true" className="text-xs text-muted">↗</span>
+              </a>
+              <p className="text-sm text-muted">
                 {playlist.videoCount} video{playlist.videoCount !== 1 ? "s" : ""}
               </p>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleDeleteSingle(playlist.id)}
+              onClick={async () => await handleDeleteSingle(playlist.id)}
               disabled={isDeleting}
-              className="flex-shrink-0 p-1.5"
+              className="size-11 shrink-0 p-0 text-muted hover:bg-danger-tint hover:text-danger"
+              aria-label={`Delete playlist: ${playlist.title}`}
               title="Delete playlist"
             >
-              <TrashIcon className="w-4 h-4 text-[--color-error]" />
+              <TrashIcon className="size-4" />
             </Button>
-          </div>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 }

@@ -1,66 +1,99 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  
-  /* YouTube-inspired Design System */
-  --color-youtube-red: #FF0000;
-  --color-youtube-red-hover: #CC0000;
-  --color-youtube-red-dark: #8B0000;
-  --color-youtube-dark: #0F0F0F;
-  --color-youtube-dark-lighter: #1A1A1A;
-  --color-youtube-gray: #404040;
-  --color-youtube-gray-light: #606060;
-  --color-success: #00B04F;
-  --color-warning: #FF9500;
-  --color-error: #FF0000;
+  color-scheme: light dark;
+  --page: #f5f6f8;
+  --surface: #fff;
+  --quiet: #f0f2f5;
+  --foreground: #161c26;
+  --muted: #4f5b6e;
+  --line: #dce1e8;
+  --control-border: #808b9a;
+  --danger: #b41e2d;
+  --danger-tint: #fef0f1;
+  --success: #17633b;
+  --success-tint: #eaf7ef;
+  --focus: #1558b0;
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-background: var(--page);
+  --color-surface: var(--surface);
+  --color-quiet: var(--quiet);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  
-  /* YouTube Theme Colors */
-  --color-youtube-primary: var(--color-youtube-red);
-  --color-youtube-primary-hover: var(--color-youtube-red-hover);
-  --color-youtube-primary-dark: var(--color-youtube-red-dark);
-  --color-youtube-secondary: var(--color-youtube-gray);
-  --color-youtube-secondary-hover: var(--color-youtube-gray-light);
-  --color-youtube-background: var(--color-youtube-dark);
-  --color-youtube-surface: var(--color-youtube-dark-lighter);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-control-border: var(--control-border);
+  --color-primary: #b41e2d;
+  --color-primary-hover: #981824;
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --page: #111318;
+    --surface: #1a1e26;
+    --quiet: #232933;
+    --foreground: #f4f5f7;
+    --muted: #b4bece;
+    --line: #363f4d;
+    --control-border: #7b8798;
+    --danger: #ff9ca4;
+    --danger-tint: #3a2028;
+    --success: #94dfad;
+    --success-tint: #1b3226;
+    --focus: #a4c9ff;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+@layer components {
+  .page-shell {
+    @apply mx-auto w-[calc(100%-32px)] max-w-[880px] sm:w-[calc(100%-40px)];
+  }
+
+  .panel {
+    @apply rounded-[14px] border border-line bg-surface shadow-[0_1px_2px_#10182808];
+  }
+
+  .form-control {
+    @apply min-h-11 w-full min-w-0 rounded-lg border border-control-border bg-surface px-3 py-2 text-base font-normal text-foreground placeholder:text-muted;
+  }
+
+  .source-option {
+    @apply grid min-h-[52px] cursor-pointer place-items-center border-b-2 border-transparent px-0.5 text-center font-semibold text-muted hover:text-foreground;
+  }
+
+  .source-options input:checked + .source-option {
+    @apply border-danger text-danger;
+  }
+
+  .source-options input:focus-visible + .source-option {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .play-mark {
+    @apply grid h-6 w-8 shrink-0 place-items-center rounded-[7px] bg-primary;
+  }
+
+  .play-mark::after {
+    content: "";
+    border: 5px solid transparent;
+    border-left: 8px solid white;
+    translate: 3px 0;
+  }
 }
