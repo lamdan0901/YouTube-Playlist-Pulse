@@ -1,4 +1,4 @@
-# YouTube Playlist Pulse
+# Playlist Pulse
 
 A modern Next.js web application that automatically generates YouTube playlists from your subscribed channels' recent videos. Built with React 19, Nextjs 15, TypeScript, and the YouTube Data API v3.
 
@@ -62,10 +62,10 @@ bun install
    - Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
    - Set application type to "Web application"
    - Add authorized origins:
-     - `http://localhost:3000` (for development)
+     - `http://localhost:3001` (for development)
      - Your production domain(s)
    - Add authorized redirect URIs:
-     - `http://localhost:3000` (for development)
+     - `http://localhost:3001` (for development)
      - Your production domain(s)
 
 ### 4. Environment Configuration
@@ -73,18 +73,18 @@ bun install
 Create a `.env.local` file in the root directory:
 
 ```env
-# Google OAuth (Client-side)
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
-
-# Google OAuth (Server-side)
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# Production URL (for OAuth redirects)
+SESSION_SECRET=your_random_32_byte_base64url_key
 PRODUCTION_URL=https://your-production-domain.com
+SUPPORT_EMAIL=your_privacy_support_email
 ```
 
-For development, the OAuth redirect will default to `http://localhost:3000`.
+Generate SESSION_SECRET with the command below. Keep this key and the Google client secret server-side. Use a separate key for each environment. Set PRODUCTION_URL to the exact authorized production origin. The development server uses http://localhost:3001. Set SUPPORT_EMAIL to a monitored address before building the public site.
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+```
 
 ## 🚀 Development
 
@@ -100,7 +100,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
+Open [http://localhost:3001](http://localhost:3001) with your browser to see the application.
 
 ### Available Scripts
 
@@ -120,7 +120,7 @@ npm run lint
 
 ## 📱 Usage
 
-1. **Authentication**: Click "Sign in with YouTube" to authenticate with your Google account
+1. **Authentication**: Accept the Privacy Policy and Terms of Service, then click "Continue to Google"
 2. **Generate Playlist**: Click "Create New Playlist" to start the automated process
 3. **Monitor Progress**: Watch real-time progress as the app:
    - Fetches your subscribed channels
@@ -144,8 +144,10 @@ src/
 ├── app/
 │   ├── api/
 │   │   ├── auth/
-│   │   │   ├── exchange/route.ts    # OAuth token exchange
-│   │   │   └── refresh/route.ts     # Token refresh
+│   │   │   ├── start/route.ts       # Start OAuth and set browser-bound state
+│   │   │   ├── callback/route.ts    # Validate the callback and exchange the code
+│   │   │   ├── refresh/route.ts     # Return a short-lived access token
+│   │   │   └── disconnect/route.ts  # Sign out or revoke Google access
 │   │   └── health/route.ts          # Health check endpoint
 │   ├── layout.tsx                   # Root layout
 │   ├── page.tsx                     # Main application page
@@ -158,13 +160,16 @@ src/
 
 ### API Routes
 
-- `POST /api/auth/exchange` - Exchange authorization code for access tokens
-- `POST /api/auth/refresh` - Refresh expired access tokens
+- `POST /api/auth/start` - Start consent and set the short-lived state cookie
+- `GET /` with a Google OAuth response - Handle the callback server-side and redirect to a clean URL
+- `POST /api/auth/refresh` - Get a short-lived access token from the encrypted session cookie
+- `DELETE /api/auth/disconnect` - Sign out locally
+- `POST /api/auth/disconnect` - Revoke Google access and clear the session
 - `GET /api/health` - Health check endpoint
 
 ### Key Features Implementation
 
-- **OAuth Flow**: Secure token exchange and refresh handling with localStorage persistence
+- **OAuth Flow**: Server-side code exchange with state and PKCE. The encrypted, HTTP-only session cookie holds the refresh token. The browser holds short-lived access tokens in memory.
 - **Rate Limiting**: Built-in delays between API calls to respect YouTube quotas
 - **Batch Processing**: Efficient video metadata fetching in batches of 50
 - **Error Recovery**: Continues processing even if individual channels fail
@@ -179,10 +184,11 @@ src/
 1. Push your code to GitHub
 2. Import your repository in Vercel
 3. Set the required environment variables:
-   - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
    - `GOOGLE_CLIENT_ID`
    - `GOOGLE_CLIENT_SECRET`
+   - `SESSION_SECRET`
    - `PRODUCTION_URL`
+   - `SUPPORT_EMAIL`
 4. Deploy automatically
 
 ### Other Platforms
@@ -238,7 +244,11 @@ For deployment on other platforms (Netlify, Railway, etc.):
 - **API Quota Exceeded**: Wait for quota reset (daily) or request quota increase from Google
 - **Empty Playlists**: Check if subscribed channels have recent videos in the 1-20 minute range
 - **Failed Video Additions**: Review the failed videos list for specific error details
-- **Token Refresh Issues**: Clear localStorage and re-authenticate if refresh tokens fail
+- **Token Refresh Issues**: Sign in again if the session expires or Google access is revoked.
+
+### OAuth Regression Checks
+
+Run `npm run build` followed by `node --test test/auth.test.mjs`. The tests start the production build locally and use a mocked Google token endpoint.
 
 ### Development Issues
 

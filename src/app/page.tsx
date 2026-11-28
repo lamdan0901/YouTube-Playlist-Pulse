@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useYouTubeAuth, useYouTubeApi } from "@/hooks";
 import { CheckIcon, CopyIcon } from "@/app/icons";
 import { Button, ProgressBar } from "@/components/ui";
 import { GeneratedPlaylists } from "@/components/GeneratedPlaylists";
+import { appName } from "@/lib/site";
 
 export default function Home() {
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +25,12 @@ export default function Home() {
     isAuthenticated,
     accessToken,
     authenticate,
-    logout,
+    endSession,
     isValidating,
-    forceReAuthenticate,
+    authError,
+    authBusy,
   } = useYouTubeAuth();
+  const [acceptedPolicies, setAcceptedPolicies] = useState(false);
   const {
     isLoading,
     progress,
@@ -96,17 +100,15 @@ export default function Home() {
 
   // Update document title with progress during playlist creation
   useEffect(() => {
-    const baseTitle = "YouTube Playlist Pulse";
-
     if (isLoading && progress > 0) {
-      document.title = `${progress}% - ${baseTitle}`;
+      document.title = `${progress}% - ${appName}`;
     } else {
-      document.title = baseTitle;
+      document.title = appName;
     }
 
     // Cleanup function to reset title when component unmounts
     return () => {
-      document.title = baseTitle;
+      document.title = appName;
     };
   }, [isLoading, progress]);
 
@@ -137,8 +139,8 @@ export default function Home() {
       <header className="border-b border-line bg-surface">
         <div className="page-shell flex min-h-[62px] items-center justify-between gap-3 sm:min-h-[68px]">
           <div className="flex items-center gap-2.5 font-bold">
-            <span className="play-mark" aria-hidden="true" />
-            <span>YouTube Playlist Pulse</span>
+            <span className="brand-mark" aria-hidden="true"><span /></span>
+            <span>{appName}</span>
           </div>
           {isAuthenticated && !isValidating && (
             <details className="relative shrink-0">
@@ -149,12 +151,25 @@ export default function Home() {
                   className="size-[7px] -translate-y-0.5 rotate-45 border-r border-b"
                 />
               </summary>
-              <div className="absolute top-full right-0 z-10 mt-2 grid min-w-40 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
-                <Button variant="ghost" size="sm" className="justify-start" onClick={forceReAuthenticate}>
+              <div className="absolute top-full right-0 z-10 mt-2 grid min-w-48 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+                <Button variant="ghost" size="sm" className="justify-start" disabled={authBusy} onClick={authenticate}>
                   Switch account
                 </Button>
-                <Button variant="ghost" size="sm" className="justify-start" onClick={logout}>
+                <Button variant="ghost" size="sm" className="justify-start" disabled={authBusy} onClick={() => endSession(false)}>
                   Sign out
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start text-danger"
+                  disabled={authBusy}
+                  onClick={() => {
+                    if (window.confirm("Disconnect YouTube from Playlist Pulse? Your playlists will stay on YouTube.")) {
+                      void endSession(true);
+                    }
+                  }}
+                >
+                  Disconnect YouTube
                 </Button>
               </div>
             </details>
@@ -277,16 +292,36 @@ export default function Home() {
                 </div>
               </section>
             ) : (
-              <div className="panel p-4 sm:p-6">
-                <Button className="w-full sm:w-auto" onClick={async () => await authenticate(true)}>
-                  Sign in with YouTube
+              <form
+                className="panel space-y-4 p-4 sm:p-6"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (acceptedPolicies) void authenticate();
+                }}
+              >
+                <div className="flex items-start gap-2.5 text-sm">
+                  <input
+                    id="accept-policies"
+                    type="checkbox"
+                    className="mt-0.5 size-4 shrink-0 accent-primary"
+                    required
+                    checked={acceptedPolicies}
+                    onChange={(event) => setAcceptedPolicies(event.target.checked)}
+                  />
+                  <label htmlFor="accept-policies">
+                    I agree to the <Link className="underline underline-offset-4" href="/privacy">Privacy Policy</Link>{" "}
+                    and <Link className="underline underline-offset-4" href="/terms">Terms of Service</Link>.
+                  </label>
+                </div>
+                <Button type="submit" className="w-full sm:w-auto" disabled={!acceptedPolicies} loading={authBusy}>
+                  Continue to Google
                 </Button>
-              </div>
+              </form>
             )}
 
-            {error && (
+            {(authError || error) && (
               <p role="alert" className="rounded-xl bg-danger-tint px-4 py-3 text-sm text-danger wrap-anywhere">
-                {error}
+                {authError || error}
               </p>
             )}
             {message && (
@@ -302,7 +337,7 @@ export default function Home() {
               </div>
             )}
 
-            {playlists.length > 0 && (
+            {isAuthenticated && playlists.length > 0 && (
               <section className="panel" aria-labelledby="ready-playlists">
                 <h2 id="ready-playlists" className="px-4 pt-4 pb-3 text-lg font-bold sm:px-6">
                   Your playlist{playlists.length > 1 ? "s are" : " is"} ready
@@ -338,7 +373,7 @@ export default function Home() {
               </section>
             )}
 
-            {failedVideos.length > 0 && (
+            {isAuthenticated && failedVideos.length > 0 && (
               <section className="panel space-y-2 p-4 sm:p-6" aria-labelledby="failed-videos">
                 <h2 id="failed-videos" className="text-lg font-bold text-danger">Failed videos</h2>
                 <ul className="divide-y divide-line" role="list">

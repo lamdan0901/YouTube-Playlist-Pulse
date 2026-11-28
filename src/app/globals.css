@@ -86,14 +86,18 @@
     outline-offset: 2px;
   }
 
-  .play-mark {
-    @apply grid h-6 w-8 shrink-0 place-items-center rounded-[7px] bg-primary;
+  .brand-mark {
+    @apply flex size-7 shrink-0 items-center justify-center gap-[2px] rounded-lg bg-primary;
   }
 
-  .play-mark::after {
+  .brand-mark::before,
+  .brand-mark::after,
+  .brand-mark > span {
     content: "";
-    border: 5px solid transparent;
-    border-left: 8px solid white;
-    translate: 3px 0;
+    @apply w-[3px] rounded-full bg-white;
   }
+
+  .brand-mark::before { height: 7px; }
+  .brand-mark > span { height: 14px; }
+  .brand-mark::after { height: 10px; }
 }

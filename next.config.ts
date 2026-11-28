@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    return {
+      beforeFiles: ["code", "error"].map((key) => ({
+        source: "/",
+        has: [{ type: "query" as const, key }],
+        destination: "/api/auth/callback",
+      })),
+    };
+  },
 };
 
 export default nextConfig;
