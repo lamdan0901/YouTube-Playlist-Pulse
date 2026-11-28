@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (typeof data.scope !== "string" || !data.scope.split(" ").includes(youtubeScope)) {
       return finish("permission");
     }
-    if (typeof data.refresh_token !== "string" || !data.refresh_token) return finish("failed");
+    if (typeof data.refresh_token !== "string" || !data.refresh_token) return finish("consent_required");
 
     const response = finish();
     const expiresIn = data.refresh_token_expires_in;

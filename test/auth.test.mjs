@@ -56,8 +56,8 @@ function post(path, cookie, requestOrigin = origin, body) {
   return request(`/api/auth/${path}`, { method: "POST", headers, body });
 }
 
-async function start() {
-  const response = await post("start", null, origin, new URLSearchParams({ accept: "yes" }));
+async function start(options = {}) {
+  const response = await post("start", null, origin, new URLSearchParams({ accept: "yes", ...options }));
   assert.equal(response.status, 200);
   const { url } = await response.json();
   return { response, url: new URL(url) };
@@ -83,6 +83,7 @@ test("OAuth requires same-origin POSTs and validates callbacks before exchanging
   assert.equal(url.origin, "https://accounts.google.com");
   assert.equal(url.searchParams.get("redirect_uri"), origin);
   assert.equal(url.searchParams.get("scope"), "https://www.googleapis.com/auth/youtube");
+  assert.equal(url.searchParams.has("prompt"), false);
   assert.equal(url.searchParams.get("code_challenge_method"), "S256");
   const state = url.searchParams.get("state");
   assert.match(state, /^[\w-]{43}$/);
@@ -104,6 +105,31 @@ test("OAuth requires same-origin POSTs and validates callbacks before exchanging
   assert.match(cancelled.headers.get("set-cookie"), /Max-Age=0/i);
 });
 
+test("OAuth can request fresh consent when Google omits a refresh token", async () => {
+  const { response, url } = await start();
+  const state = url.searchParams.get("state");
+  const callback = await request(`/?code=fixture-existing-grant&state=${state}`, {
+    headers: { Cookie: response.headers.get("set-cookie").split(";")[0] },
+  });
+  assert.equal(callback.status, 303);
+  assert.equal(callback.headers.get("location"), `${origin}/?auth=consent_required`);
+  assert.match(callback.headers.get("set-cookie"), /Max-Age=0/i);
+
+  const reconnect = await start({ consent: "yes" });
+  assert.equal(reconnect.url.searchParams.get("prompt"), "consent");
+  const newState = reconnect.url.searchParams.get("state");
+  const reconnected = await request(`/?code=fixture-code&state=${newState}`, {
+    headers: { Cookie: reconnect.response.headers.get("set-cookie").split(";")[0] },
+  });
+  assert.equal(reconnected.headers.get("location"), `${origin}/`);
+  assert.ok(reconnected.headers.getSetCookie().some((cookie) => cookie.startsWith("playlist-session=")));
+});
+
+test("switching accounts explicitly still opens Google's account chooser", async () => {
+  const { url } = await start({ switch_account: "yes" });
+  assert.equal(url.searchParams.get("prompt"), "select_account consent");
+});
+
 test("a successful callback keeps refresh credentials private and disconnect revokes them", async () => {
   const { response, url } = await start();
   const state = url.searchParams.get("state");
@@ -115,6 +141,7 @@ test("a successful callback keeps refresh credentials private and disconnect rev
   assert.equal(callback.headers.get("referrer-policy"), "no-referrer");
   const session = callback.headers.getSetCookie().find((cookie) => cookie.startsWith("playlist-session="));
   assert.match(session, /HttpOnly/i);
+  assert.match(session, /Max-Age=2592000/i);
   assert.doesNotMatch(session, /fixture-refresh-token/);
   const sessionCookie = session.split(";")[0];
   const active = await post("refresh", sessionCookie);

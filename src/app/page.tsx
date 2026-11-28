@@ -152,7 +152,13 @@ export default function Home() {
                 />
               </summary>
               <div className="absolute top-full right-0 z-10 mt-2 grid min-w-48 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
-                <Button variant="ghost" size="sm" className="justify-start" disabled={authBusy} onClick={authenticate}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start"
+                  disabled={authBusy}
+                  onClick={() => void authenticate({ switchAccount: true })}
+                >
                   Switch account
                 </Button>
                 <Button variant="ghost" size="sm" className="justify-start" disabled={authBusy} onClick={() => endSession(false)}>

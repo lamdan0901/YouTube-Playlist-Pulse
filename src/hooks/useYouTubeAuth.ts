@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 const callbackMessages: Record<string, string> = {
   cancelled: "YouTube sign-in was cancelled.",
+  consent_required: "Google needs your permission again to keep you signed in. Choose Continue to Google to reconnect.",
   failed: "Google sign-in could not be completed. Please try again.",
   invalid: "This sign-in attempt expired or could not be verified. Please try again.",
   permission: "Allow YouTube playlist access in the Google consent screen to continue.",
@@ -17,6 +18,7 @@ export function useYouTubeAuth() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
   const actionInProgress = useRef(false);
+  const consentRequired = useRef(false);
 
   useEffect(() => {
     try {
@@ -31,6 +33,7 @@ export function useYouTubeAuth() {
     const url = new URL(window.location.href);
     const status = url.searchParams.get("auth");
     if (status && Object.hasOwn(callbackMessages, status)) {
+      consentRequired.current = status === "consent_required";
       setAuthError(callbackMessages[status]);
       url.searchParams.delete("auth");
       window.history.replaceState(window.history.state, "", url);
@@ -87,9 +90,12 @@ export function useYouTubeAuth() {
     }
   }
 
-  async function authenticate() {
+  async function authenticate({ switchAccount = false } = {}) {
     await runAction(async () => {
-      const response = await authRequest("start", { body: new URLSearchParams({ accept: "yes" }) });
+      const body = new URLSearchParams({ accept: "yes" });
+      if (switchAccount) body.set("switch_account", "yes");
+      if (consentRequired.current) body.set("consent", "yes");
+      const response = await authRequest("start", { body });
       if (!response.ok) throw new Error("Authorization could not start");
       const { url } = await response.json();
       window.location.assign(url);

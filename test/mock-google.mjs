@@ -16,14 +16,14 @@ globalThis.fetch = async (input, init) => {
 
   if (url.pathname === "/token") {
     if (form.get("grant_type") === "authorization_code" &&
-        form.get("code") === "fixture-code" &&
         form.get("redirect_uri") === process.env.PRODUCTION_URL &&
         /^[\w-]{43}$/.test(form.get("code_verifier"))) {
-      revoked = false;
-      return Response.json({
-        refresh_token: refreshToken,
-        scope: "https://www.googleapis.com/auth/youtube",
-      });
+      const scope = "https://www.googleapis.com/auth/youtube";
+      if (form.get("code") === "fixture-existing-grant") return Response.json({ scope });
+      if (form.get("code") === "fixture-code") {
+        revoked = false;
+        return Response.json({ refresh_token: refreshToken, scope });
+      }
     }
 
     if (!revoked && form.get("grant_type") === "refresh_token" &&
