@@ -7,7 +7,6 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 export const youtubeScope = "https://www.googleapis.com/auth/youtube";
-export const scopes = [`${youtubeScope}.readonly`, youtubeScope].join(" ");
 const oauthEndpoint = "https://oauth2.googleapis.com";
 const authHeaders = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" };
 const noncePattern = /^[A-Za-z0-9_-]{43}$/;

@@ -82,6 +82,7 @@ test("OAuth requires same-origin POSTs and validates callbacks before exchanging
   const { response, url } = await start();
   assert.equal(url.origin, "https://accounts.google.com");
   assert.equal(url.searchParams.get("redirect_uri"), origin);
+  assert.equal(url.searchParams.get("scope"), "https://www.googleapis.com/auth/youtube");
   assert.equal(url.searchParams.get("code_challenge_method"), "S256");
   const state = url.searchParams.get("state");
   assert.match(state, /^[\w-]{43}$/);

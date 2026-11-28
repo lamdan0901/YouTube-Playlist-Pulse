@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { NextRequest } from "next/server";
-import { authJson, authPostOrigin, googleClient, scopes, sessionKey, setAuthCookie } from "../oauth";
+import { authJson, authPostOrigin, googleClient, sessionKey, setAuthCookie, youtubeScope } from "../oauth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       client_id,
       response_type: "code",
       redirect_uri: origin,
-      scope: scopes,
+      scope: youtubeScope,
       state,
       code_challenge: createHash("sha256").update(verifier).digest("base64url"),
       code_challenge_method: "S256",
